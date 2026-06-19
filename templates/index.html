@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K-Bond Premium Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text: #f8fafc;
+            --buy: #ef4444;
+            --sell: #3b82f6;
+            --trade: #10b981;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            background-image: radial-gradient(circle at top right, #1e1b4b, #0f172a);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 16px;
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status {
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            background-color: #10b981;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #10b981;
+        }
+
+        .filters {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        input, select {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            color: white;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+        }
+
+        .message-list {
+            background: var(--card-bg);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th {
+            text-align: left;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            font-weight: 600;
+            color: #94a3b8;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .side-매수 { color: var(--buy); font-weight: bold; }
+        .side-매도 { color: var(--sell); font-weight: bold; }
+        .side-거래 { color: var(--trade); font-weight: bold; }
+
+        .ticker {
+            background: rgba(99, 102, 241, 0.2);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        .new-row {
+            animation: highlight 2s ease-out;
+        }
+
+        @keyframes highlight {
+            0% { background: rgba(99, 102, 241, 0.3); }
+            100% { background: transparent; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>K-Bond Real-time Monitor</h1>
+            <div class="status">
+                <div class="dot"></div>
+                Live Monitoring
+            </div>
+        </header>
+
+        <div class="filters">
+            <input type="text" id="filterTicker" placeholder="종목 필터 (예: 24-7, 현대카드)..." oninput="applyFilters()">
+            <input type="text" id="filterMaturity" placeholder="만기 필터 (예: 27.09, 26.08)..." oninput="applyFilters()">
+            <input type="text" id="filterSender" placeholder="보낸 사람 필터 (쉼표/공백 구분)..." oninput="applyFilters()">
+            <select id="filterSide" onchange="applyFilters()">
+                <option value="">모든 방향</option>
+                <option value="매수">매수 (+)</option>
+                <option value="매도">매도 (-)</option>
+                <option value="거래">거래 (Done)</option>
+            </select>
+        </div>
+
+        <div class="message-list">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 150px;">수집 시간</th>
+                        <th style="width: 100px;">송신자</th>
+                        <th style="width: 120px;">종목</th>
+                        <th style="width: 100px;">만기</th>
+                        <th style="width: 80px;">구분</th>
+                        <th>대화 내용</th>
+                    </tr>
+                </thead>
+                <tbody id="messageBody">
+                    <!-- 메시지가 여기에 추가됩니다 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const messageBody = document.getElementById('messageBody');
+        let allMessages = [];
+
+        socket.on('new_message', (data) => {
+            allMessages.unshift(data); // 앞에 추가
+            if (allMessages.length > 1000) allMessages.pop(); // 최대 1000개 유지
+            renderMessages();
+        });
+
+        function renderMessages() {
+            // 쉼표(,) 또는 공백으로 입력된 키워드들을 분리하여 배열로 저장 (빈 문자열 제외)
+            const tickerKeywords = document.getElementById('filterTicker').value.toLowerCase().split(/[\s,]+/).filter(k => k);
+            const maturityKeywords = document.getElementById('filterMaturity').value.toLowerCase().split(/[\s,]+/).filter(k => k);
+            const senderKeywords = document.getElementById('filterSender').value.toLowerCase().split(/[\s,]+/).filter(k => k);
+            const sideFilter = document.getElementById('filterSide').value;
+
+            const filtered = allMessages.filter(m => {
+                const itemTicker = (m.ticker || "").toLowerCase();
+                const itemMaturity = (m.maturity || "").toLowerCase();
+                const itemSender = (m.sender || "").toLowerCase();
+
+                // 각 필드별로 입력된 키워드 중 하나라도 매칭(OR)되는지 확인. 입력이 없으면 패스(true).
+                const matchTicker = tickerKeywords.length === 0 || tickerKeywords.some(kw => itemTicker.includes(kw));
+                const matchMaturity = maturityKeywords.length === 0 || maturityKeywords.some(kw => itemMaturity.includes(kw));
+                const matchSender = senderKeywords.length === 0 || senderKeywords.some(kw => itemSender.includes(kw));
+                const matchSide = !sideFilter || m.side === sideFilter;
+
+                return matchTicker && matchMaturity && matchSender && matchSide;
+            });
+
+            messageBody.innerHTML = filtered.map((m, index) => `
+                <tr class="${index === 0 ? 'new-row' : ''}">
+                    <td style="color: #64748b; font-size: 0.8rem;">${m.timestamp}</td>
+                    <td>${m.sender}</td>
+                    <td><span class="ticker">${m.ticker || '-'}</span></td>
+                    <td><span style="color: #cbd5e1;">${m.maturity || '-'}</span></td>
+                    <td><span class="side-${m.side}">${m.side || '-'}</span></td>
+                    <td>${m.content}</td>
+                </tr>
+            `).join('');
+        }
+
+        function applyFilters() {
+            renderMessages();
+        }
+    </script>
+</body>
+</html>

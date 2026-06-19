@@ -1,0 +1,5 @@
+uiautomation
+pywinauto
+flask
+flask-socketio
+requests

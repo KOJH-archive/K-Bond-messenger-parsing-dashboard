@@ -1,0 +1,24 @@
+# 파이썬 캐시 및 가상환경
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# 개발 환경 및 에디터 설정
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# 임시 캡처 이미지 및 진단 데이터
+temp_capture.png
+kbond_diag.txt
+
+# [중요] 개인정보 및 메신저 데이터 로그 파일
+# K-Bond 메시지가 저장된 CSV 파일은 외부 원격지 업로드를 금지합니다.
+kbond_messages_*.csv
+*.csv
