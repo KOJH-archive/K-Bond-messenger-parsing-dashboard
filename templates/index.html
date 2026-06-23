@@ -137,6 +137,21 @@
             0% { background: rgba(99, 102, 241, 0.3); }
             100% { background: transparent; }
         }
+        .copy-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 6px;
+            padding: 4px 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .copy-btn:hover {
+            background: rgba(99, 102, 241, 0.5);
+            border-color: rgba(99, 102, 241, 0.8);
+        }
     </style>
 </head>
 <body>
@@ -171,6 +186,7 @@
                         <th style="width: 100px;">만기</th>
                         <th style="width: 80px;">구분</th>
                         <th>대화 내용</th>
+                        <th style="width: 60px; text-align: center;">복사</th>
                     </tr>
                 </thead>
                 <tbody id="messageBody">
@@ -220,12 +236,31 @@
                     <td><span style="color: #cbd5e1;">${m.maturity || '-'}</span></td>
                     <td><span class="side-${m.side}">${m.side || '-'}</span></td>
                     <td>${m.content}</td>
+                    <td style="text-align: center;">
+                        <button class="copy-btn" onclick="copyMessageData(this)" data-message='${JSON.stringify(m).replace(/'/g, "&#39;").replace(/"/g, "&quot;")}' title="행 내용 복사">📋</button>
+                    </td>
                 </tr>
             `).join('');
         }
 
         function applyFilters() {
             renderMessages();
+        }
+
+        function copyMessageData(btn) {
+            try {
+                const data = JSON.parse(btn.getAttribute('data-message'));
+                const textToCopy = `[${data.timestamp}] ${data.sender} | ${data.ticker || '-'} | ${data.maturity || '-'} | ${data.side || '-'} | ${data.content}`;
+                
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    const originalText = btn.innerText;
+                    btn.innerText = '✅';
+                    setTimeout(() => { btn.innerText = originalText; }, 1000);
+                });
+            } catch (e) {
+                console.error("복사 실패", e);
+                alert("복사에 실패했습니다.");
+            }
         }
     </script>
 </body>
