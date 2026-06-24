@@ -138,7 +138,12 @@ class KBondLogger:
                 if found_date != ticker: maturity = found_date
 
             parsed_data.update({"sender": sender, "msg_time": msg_time, "ticker": ticker, "maturity": maturity, "side": side, "content": content})
-            writer.writerow([timestamp, sender, ticker, maturity, side, content])
+            
+            # Excel에서 '26-2' 같은 값이 날짜로 변환되는 것을 방지하기 위해 ="값" 형태로 저장
+            csv_ticker = f'="{ticker}"' if ticker else ""
+            csv_maturity = f'="{maturity}"' if maturity else ""
+            
+            writer.writerow([timestamp, sender, csv_ticker, csv_maturity, side, content])
         else:
             writer.writerow([timestamp, "", "", "", "", message])
         
