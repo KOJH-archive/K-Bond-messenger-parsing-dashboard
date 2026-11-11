@@ -3,265 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>K-Bond Premium Dashboard</title>
+    <title>K-Bond 채권 모니터</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='watch.css') }}?v={{ runtime_revision }}">
     <style>
-        :root {
-            --primary: #6366f1;
-            --bg: #0f172a;
-            --card-bg: rgba(30, 41, 59, 0.7);
-            --text: #f8fafc;
-            --buy: #ef4444;
-            --sell: #3b82f6;
-            --trade: #10b981;
-        }
-
-        body {
-            font-family: 'Inter', system-ui, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 20px;
-            background-image: radial-gradient(circle at top right, #1e1b4b, #0f172a);
-            min-height: 100vh;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            backdrop-filter: blur(10px);
-            padding: 20px;
-            border-radius: 16px;
-            background: var(--card-bg);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        h1 {
-            margin: 0;
-            font-size: 1.5rem;
-            background: linear-gradient(to right, #818cf8, #c084fc);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .status {
-            font-size: 0.875rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .dot {
-            width: 8px;
-            height: 8px;
-            background-color: #10b981;
-            border-radius: 50%;
-            box-shadow: 0 0 10px #10b981;
-        }
-
-        .filters {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        input, select {
-            background: var(--card-bg);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 12px;
-            border-radius: 8px;
-            color: white;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        input:focus {
-            border-color: var(--primary);
-        }
-
-        .message-list {
-            background: var(--card-bg);
-            border-radius: 16px;
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(20px);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9rem;
-        }
-
-        th {
-            text-align: left;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.05);
-            font-weight: 600;
-            color: #94a3b8;
-        }
-
-        td {
-            padding: 12px 15px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        tr:hover {
-            background: rgba(255, 255, 255, 0.02);
-        }
-
-        .side-매수 { color: var(--buy); font-weight: bold; }
-        .side-매도 { color: var(--sell); font-weight: bold; }
-        .side-거래 { color: var(--trade); font-weight: bold; }
-
-        .ticker {
-            background: rgba(99, 102, 241, 0.2);
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: monospace;
-        }
-
-        .new-row {
-            animation: highlight 2s ease-out;
-        }
-
-        @keyframes highlight {
-            0% { background: rgba(99, 102, 241, 0.3); }
-            100% { background: transparent; }
-        }
-        .copy-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: white;
-            border-radius: 6px;
-            padding: 4px 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 0.9rem;
-        }
-
-        .copy-btn:hover {
-            background: rgba(99, 102, 241, 0.5);
-            border-color: rgba(99, 102, 241, 0.8);
-        }
+        :root { --bg:#f4f7fb; --panel:#fff; --line:#e6ebf2; --ink:#172033; --muted:#6d7890; --brand:#3157d5; --brand-soft:#eef2ff; --buy:#d94a5d; --sell:#2f6fdd; --trade:#168a66; --shadow:0 16px 40px rgba(43,58,91,.08); }
+        * { box-sizing:border-box; }
+        body { margin:0; min-height:100vh; color:var(--ink); background:linear-gradient(145deg,#f8faff 0%,var(--bg) 55%,#eef3fa 100%); font-family:Pretendard,"Noto Sans KR","Segoe UI",sans-serif; }
+        button,input,select { font:inherit; }
+        .shell { max-width:1440px; margin:0 auto; padding:24px; }
+        .topbar { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-bottom:18px; }
+        .brand { display:flex; align-items:center; gap:12px; }
+        .brand-mark { width:42px; height:42px; display:grid; place-items:center; color:#fff; font-weight:800; border-radius:13px; background:linear-gradient(145deg,#3157d5,#6c55dc); box-shadow:0 10px 22px rgba(49,87,213,.25); }
+        h1 { margin:0; font-size:1.24rem; letter-spacing:-.02em; }
+        .subtitle { margin-top:3px; color:var(--muted); font-size:.82rem; }
+        .live-status { display:inline-flex; align-items:center; gap:8px; padding:9px 13px; border:1px solid var(--line); border-radius:999px; background:rgba(255,255,255,.8); color:var(--muted); font-size:.82rem; }
+        .dot { width:8px; height:8px; border-radius:50%; background:#e3a008; }
+        .dot.online { background:#19a474; box-shadow:0 0 0 5px rgba(25,164,116,.11); }
+        .assistant { position:relative; overflow:hidden; padding:24px; border:1px solid #dfe5f2; border-radius:20px; background:var(--panel); box-shadow:var(--shadow); }
+        .assistant::after { content:""; position:absolute; right:-80px; top:-100px; width:280px; height:280px; border-radius:50%; background:radial-gradient(circle,rgba(82,102,220,.12),transparent 67%); pointer-events:none; }
+        .assistant-label { color:var(--brand); font-size:.78rem; font-weight:800; letter-spacing:.08em; }
+        .assistant h2 { margin:7px 0 6px; font-size:1.32rem; letter-spacing:-.035em; }
+        .assistant p { margin:0 0 17px; color:var(--muted); font-size:.9rem; }
+        .ask-row { position:relative; z-index:1; display:grid; grid-template-columns:1fr auto; gap:10px; padding:7px; background:#f7f9fd; border:1px solid #dde4ef; border-radius:15px; }
+        .ask-row:focus-within { border-color:#9aa9e8; box-shadow:0 0 0 4px rgba(49,87,213,.08); }
+        .ask-row input { border:0; outline:0; background:transparent; padding:8px 10px; color:var(--ink); min-width:0; }
+        .ask-row button { border:0; border-radius:10px; padding:10px 20px; color:#fff; font-weight:700; background:var(--brand); cursor:pointer; box-shadow:0 5px 12px rgba(49,87,213,.2); }
+        .ask-row button:hover { background:#294bc0; }
+        .chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+        .chip { border:1px solid var(--line); border-radius:999px; background:#fff; color:#526078; padding:7px 11px; font-size:.78rem; cursor:pointer; }
+        .chip:hover { border-color:#aebce8; color:var(--brand); background:var(--brand-soft); }
+        .answer { display:flex; gap:10px; align-items:flex-start; margin-top:15px; padding:13px 15px; border-radius:12px; background:var(--brand-soft); color:#36456d; font-size:.87rem; }
+        .answer-mark { color:var(--brand); font-weight:900; }
+        .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:16px 0; }
+        .stat { padding:15px 17px; border:1px solid var(--line); border-radius:15px; background:rgba(255,255,255,.86); }
+        .stat-label { color:var(--muted); font-size:.75rem; }
+        .stat-value { margin-top:5px; font-size:1.06rem; font-weight:800; letter-spacing:-.02em; }
+        .workspace { border:1px solid var(--line); border-radius:18px; background:var(--panel); box-shadow:var(--shadow); overflow:hidden; }
+        .toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid var(--line); }
+        .toolbar-title { font-size:.94rem; font-weight:800; }
+        .toolbar-note { margin-top:3px; color:var(--muted); font-size:.72rem; }
+        .local-filters { display:flex; gap:8px; flex-wrap:wrap; }
+        .local-filters input,.local-filters select { min-width:125px; padding:8px 10px; color:var(--ink); outline:0; border:1px solid var(--line); border-radius:9px; background:#fafbfd; font-size:.8rem; }
+        .table-wrap { overflow:auto; max-height:58vh; }
+        table { width:100%; border-collapse:separate; border-spacing:0; font-size:.82rem; }
+        thead { position:sticky; top:0; z-index:2; }
+        th { padding:12px 13px; text-align:left; white-space:nowrap; color:#768198; background:#f8fafc; border-bottom:1px solid var(--line); font-size:.74rem; font-weight:800; }
+        td { padding:11px 13px; border-bottom:1px solid #edf0f5; vertical-align:middle; }
+        tbody tr:hover { background:#fafbfe; }
+        .time { white-space:nowrap; color:var(--muted); font-size:.75rem; }
+        .room { white-space:nowrap; color:#59657c; font-size:.75rem; }
+        .ticker { display:inline-block; white-space:nowrap; padding:4px 7px; border-radius:7px; color:#304a9f; background:var(--brand-soft); font-weight:800; }
+        .side { display:inline-block; min-width:38px; text-align:center; padding:4px 7px; border-radius:999px; font-size:.72rem; font-weight:800; }
+        .side-buy { color:var(--buy); background:#fff0f2; }
+        .side-sell { color:var(--sell); background:#edf4ff; }
+        .side-trade { color:var(--trade); background:#eaf8f3; }
+        .content { min-width:290px; max-width:590px; color:#3e495c; line-height:1.45; }
+        .copy { border:1px solid var(--line); border-radius:8px; background:#fff; color:#667188; padding:5px 8px; cursor:pointer; font-size:.72rem; }
+        .copy:hover { color:var(--brand); border-color:#aebce8; }
+        .empty { padding:54px 20px; text-align:center; color:var(--muted); }
+        .new-note { color:var(--brand); font-weight:700; cursor:pointer; }
+        @media (max-width:800px) { .shell{padding:14px}.topbar{align-items:flex-start}.stats{grid-template-columns:repeat(2,1fr)}.toolbar{align-items:flex-start;flex-direction:column}.local-filters{width:100%}.local-filters input,.local-filters select{flex:1} }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>K-Bond Real-time Monitor</h1>
-            <div class="status">
-                <div class="dot"></div>
-                Live Monitoring
-            </div>
-        </header>
-
-        <div class="filters">
-            <input type="text" id="filterTicker" placeholder="종목 필터 (예: 24-7, 현대카드)..." oninput="applyFilters()">
-            <input type="text" id="filterMaturity" placeholder="만기 필터 (예: 27.09, 26.08)..." oninput="applyFilters()">
-            <input type="text" id="filterSender" placeholder="보낸 사람 필터 (쉼표/공백 구분)..." oninput="applyFilters()">
-            <select id="filterSide" onchange="applyFilters()">
-                <option value="">모든 방향</option>
-                <option value="매수">매수 (+)</option>
-                <option value="매도">매도 (-)</option>
-                <option value="거래">거래 (Done)</option>
-            </select>
-        </div>
-
-        <div class="message-list">
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 150px;">수집 시간</th>
-                        <th style="width: 100px;">송신자</th>
-                        <th style="width: 120px;">종목</th>
-                        <th style="width: 100px;">만기</th>
-                        <th style="width: 80px;">구분</th>
-                        <th>대화 내용</th>
-                        <th style="width: 60px; text-align: center;">복사</th>
-                    </tr>
-                </thead>
-                <tbody id="messageBody">
-                    <!-- 메시지가 여기에 추가됩니다 -->
-                </tbody>
-            </table>
-        </div>
+<main class="shell">
+    <div class="topbar">
+        <div class="brand"><div class="brand-mark">K</div><div><h1>K-Bond 채권 모니터</h1><div class="subtitle">블커본드 · 막무가내 통합 수집 · 관심조건 지원 <small>{{ runtime_revision }}</small></div></div></div>
+        <div class="live-status"><span class="dot" id="statusDot"></span><span id="statusText">연결 확인 중</span></div>
     </div>
-
-    <script>
-        const socket = io();
-        const messageBody = document.getElementById('messageBody');
-        let allMessages = [];
-
-        socket.on('new_message', (data) => {
-            allMessages.unshift(data); // 앞에 추가
-            if (allMessages.length > 1000) allMessages.pop(); // 최대 1000개 유지
-            renderMessages();
-        });
-
-        function renderMessages() {
-            // 쉼표(,) 또는 공백으로 입력된 키워드들을 분리하여 배열로 저장 (빈 문자열 제외)
-            const tickerKeywords = document.getElementById('filterTicker').value.toLowerCase().split(/[\s,]+/).filter(k => k);
-            const maturityKeywords = document.getElementById('filterMaturity').value.toLowerCase().split(/[\s,]+/).filter(k => k);
-            const senderKeywords = document.getElementById('filterSender').value.toLowerCase().split(/[\s,]+/).filter(k => k);
-            const sideFilter = document.getElementById('filterSide').value;
-
-            const filtered = allMessages.filter(m => {
-                const itemTicker = (m.ticker || "").toLowerCase();
-                const itemMaturity = (m.maturity || "").toLowerCase();
-                const itemSender = (m.sender || "").toLowerCase();
-
-                // 각 필드별로 입력된 키워드 중 하나라도 매칭(OR)되는지 확인. 입력이 없으면 패스(true).
-                const matchTicker = tickerKeywords.length === 0 || tickerKeywords.some(kw => itemTicker.includes(kw));
-                const matchMaturity = maturityKeywords.length === 0 || maturityKeywords.some(kw => itemMaturity.includes(kw));
-                const matchSender = senderKeywords.length === 0 || senderKeywords.some(kw => itemSender.includes(kw));
-                const matchSide = !sideFilter || m.side === sideFilter;
-
-                return matchTicker && matchMaturity && matchSender && matchSide;
-            });
-
-            messageBody.innerHTML = filtered.map((m, index) => `
-                <tr class="${index === 0 ? 'new-row' : ''}">
-                    <td style="color: #64748b; font-size: 0.8rem;">${m.timestamp}</td>
-                    <td>${m.sender}</td>
-                    <td><span class="ticker">${m.ticker || '-'}</span></td>
-                    <td><span style="color: #cbd5e1;">${m.maturity || '-'}</span></td>
-                    <td><span class="side-${m.side}">${m.side || '-'}</span></td>
-                    <td>${m.content}</td>
-                    <td style="text-align: center;">
-                        <button class="copy-btn" onclick="copyMessageData(this)" data-message='${JSON.stringify(m).replace(/'/g, "&#39;").replace(/"/g, "&quot;")}' title="행 내용 복사">📋</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function applyFilters() {
-            renderMessages();
-        }
-
-        function copyMessageData(btn) {
-            try {
-                const data = JSON.parse(btn.getAttribute('data-message'));
-                const textToCopy = `[${data.timestamp}] ${data.sender} | ${data.ticker || '-'} | ${data.maturity || '-'} | ${data.side || '-'} | ${data.content}`;
-                
-                navigator.clipboard.writeText(textToCopy).then(() => {
-                    const originalText = btn.innerText;
-                    btn.innerText = '✅';
-                    setTimeout(() => { btn.innerText = originalText; }, 1000);
-                });
-            } catch (e) {
-                console.error("복사 실패", e);
-                alert("복사에 실패했습니다.");
-            }
-        }
-    </script>
+    <nav class="watch-tabs" aria-label="대시보드 보기">
+        <button class="active" id="basicTab" type="button" aria-selected="true" aria-controls="basicView">채권 내역</button>
+        <button id="watchTab" type="button" aria-selected="false" aria-controls="watchView">관심조건 <span id="watchTabCount">0</span></button>
+    </nav>
+    <div id="basicView">
+    <section class="assistant">
+        <div class="assistant-label">BOND SEARCH ASSISTANT</div>
+        <h2>어떤 채권 정보를 찾아볼까요?</h2>
+        <p>기관명, 종목, 송신자, 매수·매도 조건을 말하듯 입력하세요.</p>
+        <div class="ask-row"><input id="chatQuery" autocomplete="off" placeholder="예: 하나은행 채권 보여줘 / 막무가내 매도 내역"><button id="searchButton" onclick="searchMessages()">조회</button></div>
+        <div class="chips">
+            <button class="chip" onclick="quickSearch('하나은행')">하나은행</button><button class="chip" onclick="quickSearch('매수')">전체 매수</button><button class="chip" onclick="quickSearch('매도')">전체 매도</button><button class="chip" onclick="quickSearch('막무가내')">막무가내 방</button><button class="chip" onclick="quickSearch('')">전체 내역</button>
+        </div>
+        <div class="answer"><span class="answer-mark">K</span><span id="answerText">수집 내역을 불러오는 중입니다.</span></div>
+    </section>
+    <section class="stats">
+        <div class="stat"><div class="stat-label">검색 결과</div><div class="stat-value" id="totalStat">-</div></div>
+        <div class="stat"><div class="stat-label">화면 표시</div><div class="stat-value" id="visibleStat">-</div></div>
+        <div class="stat"><div class="stat-label">수집 채팅방</div><div class="stat-value" id="roomStat">-</div></div>
+        <div class="stat"><div class="stat-label">조회 시점</div><div class="stat-value" id="asOfStat">-</div></div>
+    </section>
+    <section class="workspace">
+        <div class="toolbar">
+            <div><div class="toolbar-title">채권 내역</div><div class="toolbar-note" id="tableNote">오늘 수집한 내역만 표시합니다.</div></div>
+            <div class="local-filters"><input id="tableFilter" oninput="renderRows()" placeholder="결과 안에서 재검색"><select id="roomFilter" onchange="renderRows()"><option value="">모든 방</option><option value="블커본드">블커본드</option><option value="막무가내">막무가내</option></select><select id="sideFilter" onchange="renderRows()"><option value="">모든 구분</option><option value="매수">매수</option><option value="매도">매도</option><option value="거래">거래</option></select></div>
+        </div>
+        <div class="table-wrap">
+            <table><thead><tr><th>수집 시간</th><th>채팅방</th><th>송신자</th><th>종목</th><th>만기</th><th>구분</th><th>대화 내용</th><th>복사</th></tr></thead><tbody id="messageBody"></tbody></table>
+            <div class="empty" id="emptyState" hidden>조건에 맞는 수집 내역이 없습니다.</div>
+        </div>
+    </section>
+    </div>
+    <section id="watchView" hidden>
+        <div class="watch-intro"><div><div class="assistant-label">MY BOND WATCHLIST</div><h2>찾는 채권만, 한곳에.</h2><p>기본 조회와 별도로 저장한 조건에 맞는 오늘의 메시지를 모아 봅니다.</p></div><div class="watch-desktop"><label><input type="checkbox" id="watchDesktop"> PC 왼쪽 하단 알림</label><button type="button" id="watchTest">테스트 알림</button><small id="watchMonitorStatus">기본값 꺼짐 · 대시보드 실행 중 동작</small></div></div>
+        <form id="watchForm" class="watch-form">
+            <div class="watch-fields">
+                <label>조건 이름 · 종류명은 자동 적용<input name="name" maxlength="80" placeholder="예: 카드채 / 국고채 / 내 관심목록"></label>
+                <label>종목명 / 키워드<input name="keyword" maxlength="200" placeholder="예: 하나은행, 신한은행"></label>
+                <label>만기 시작일<input name="maturity_from" type="date"></label>
+                <label>만기 종료일<input name="maturity_to" type="date"></label>
+                <label>최소 잔존개월<input name="min_months" type="number" min="0" max="600" step="1" placeholder="제한 없음"></label>
+                <label>최대 잔존개월<input name="max_months" type="number" min="0" max="600" step="1" placeholder="예: 9 (9개월 이내)"></label>
+            </div>
+            <fieldset class="watch-types"><legend>채권종류 · 여러 개 선택 가능</legend><div id="watchTypeOptions"></div></fieldset>
+            <p id="watchTypePreview" class="watch-help" aria-live="polite">적용 채권종류: 전체 종류 · 아래에서 종류를 선택하거나 이름에 카드채·국고채 등을 입력하세요.</p>
+            <div class="watch-form-foot"><p>입력한 항목은 모두 충족해야 합니다. 쉼표로 구분한 키워드와 선택한 채권종류는 각각 하나만 맞아도 됩니다. 은행채는 특은+시중은행, 시중은행채는 시중은행만 적용합니다.</p><div><button type="button" id="watchCancel" hidden>수정 취소</button><button type="submit" id="watchSave">관심조건 추가</button></div></div>
+        </form>
+        <div id="watchError" role="alert" hidden></div>
+        <p class="watch-help">종류를 직접 선택하면 그 선택이 우선합니다. 종류 미선택 시 조건 이름이 정확히 ‘카드채’·‘국고채’ 등의 종류명이면 자동 적용하고, 그 밖의 이름은 표시용으로 사용합니다. 키워드에 종류명만 입력해도 해당 종류로 해석합니다. 잔존개월은 오늘부터 달력 기준이며 일자가 없는 만기는 제외합니다. 분류는 발행기관 이름·표현에 따른 추정입니다.</p>
+        <div id="watchRules" class="watch-rules"></div>
+        <section class="workspace">
+            <div class="toolbar"><div><div class="toolbar-title">관심조건 일치 내역</div><div class="toolbar-note" id="watchNote">관심조건을 추가하면 결과가 표시됩니다.</div></div><div class="local-filters"><select id="watchRuleFilter" aria-label="관심조건 선택"><option value="">모든 관심조건</option></select><button id="watchRefresh" type="button">새로고침</button></div></div>
+            <div class="table-wrap"><table><thead><tr><th>수집 시간</th><th>채팅방</th><th>일치 조건</th><th>분류</th><th>종목</th><th>만기</th><th>구분</th><th>대화 내용</th></tr></thead><tbody id="watchRows"></tbody></table><div class="empty" id="watchEmpty">관심조건을 추가해 주세요.</div></div>
+        </section>
+        <p class="watch-help">PC 알림을 켜면 저장 이후 조건에 맞는 새 메시지부터 표시합니다. 같은 종목의 새 호가도 알리며, 단순 재조회는 알림을 만들지 않습니다. 브라우저를 닫거나 최소화해도 통합실행 대시보드가 실행 중이면 동작합니다. 여러 메시지가 한꺼번에 들어오면 한 창으로 묶어 표시합니다.</p>
+    </section>
+</main>
+<script>
+    const socket=io(); let resultRows=[],visibleRows=[],currentQuery='',serverTotal=0,resultDate='';
+    const esc=value=>String(value??'').replace(/[&<>'"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
+    const sideClass=side=>side.includes('매수')?'side-buy':side.includes('매도')?'side-sell':'side-trade';
+    const roomShort=room=>(room||'').replace('[채권] ','')||'-';
+    socket.on('connect',()=>{statusDot.classList.add('online');statusText.textContent='실시간 연결됨'});
+    socket.on('disconnect',()=>{statusDot.classList.remove('online');statusText.textContent='재연결 중'});
+    socket.on('new_message',data=>{const messageDate=(data.timestamp||'').slice(0,10);if(!currentQuery&&messageDate===resultDate){resultRows.unshift(data);resultRows=resultRows.slice(0,500);serverTotal+=1;renderRows()}else{tableNote.innerHTML='<span class="new-note" onclick="searchMessages()">새 내역이 수집됐습니다 · 다시 조회</span>'}});
+    async function searchMessages(){
+        const query=chatQuery.value.trim(); searchButton.disabled=true; searchButton.textContent='조회 중';
+        try{const response=await fetch(`/api/search?q=${encodeURIComponent(query)}`);if(!response.ok)throw new Error();const data=await response.json();currentQuery=query;resultDate=data.date||'';resultRows=data.rows||[];serverTotal=data.total||0;answerText.textContent=data.answer;asOfStat.textContent=(data.as_of||'-').slice(11,19);tableNote.textContent=data.shown<data.total?`오늘 내역 중 최신 ${data.shown.toLocaleString()}건을 표시합니다.`:`${data.date||'오늘'} 수집 내역만 표시합니다.`;renderRows()}
+        catch(_){answerText.textContent='조회 중 문제가 생겼습니다. 대시보드 연결 상태를 확인해 주세요.'}
+        finally{searchButton.disabled=false;searchButton.textContent='조회'}
+    }
+    function quickSearch(query){chatQuery.value=query;searchMessages()}
+    function renderRows(){
+        const text=tableFilter.value.trim().toLowerCase(),room=roomFilter.value,side=sideFilter.value;
+        visibleRows=resultRows.filter(row=>{const haystack=Object.values(row).join(' ').toLowerCase();return(!text||haystack.includes(text))&&(!room||(row.room||'').includes(room))&&(!side||(row.side||'').includes(side))});
+        emptyState.hidden=visibleRows.length!==0;
+        messageBody.innerHTML=visibleRows.map((row,index)=>`<tr><td class="time">${esc(row.timestamp)}</td><td class="room">${esc(roomShort(row.room))}</td><td>${esc(row.sender||'-')}</td><td><span class="ticker">${esc(row.ticker||'-')}</span></td><td>${esc(row.maturity||'-')}</td><td><span class="side ${sideClass(row.side||'')}">${esc(row.side||'-')}</span></td><td class="content">${esc(row.content||'-')}</td><td><button class="copy" onclick="copyRow(${index},this)">복사</button></td></tr>`).join('');
+        const rooms=new Set(resultRows.map(row=>roomShort(row.room)).filter(Boolean));totalStat.textContent=serverTotal.toLocaleString()+'건';visibleStat.textContent=visibleRows.length.toLocaleString()+'건';roomStat.textContent=rooms.size?rooms.size+'개':'-';
+    }
+    async function copyRow(index,button){const row=visibleRows[index],text=`[${row.timestamp}] ${roomShort(row.room)} | ${row.sender||'-'} | ${row.ticker||'-'} | ${row.maturity||'-'} | ${row.side||'-'} | ${row.content||''}`;try{await navigator.clipboard.writeText(text);const original=button.textContent;button.textContent='완료';setTimeout(()=>button.textContent=original,900)}catch(_){button.textContent='실패'}}
+    chatQuery.addEventListener('keydown',event=>{if(event.key==='Enter')searchMessages()}); searchMessages();
+</script>
+<script src="{{ url_for('static', filename='watch.js') }}?v={{ runtime_revision }}"></script>
 </body>
 </html>

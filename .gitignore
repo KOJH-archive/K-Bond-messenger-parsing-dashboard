@@ -22,3 +22,7 @@ kbond_diag.txt
 # K-Bond 메시지가 저장된 CSV 파일은 외부 원격지 업로드를 금지합니다.
 kbond_messages_*.csv
 *.csv
+data/watch_settings.json
+data/watch_settings.tmp
+data/dashboard-runtime.log
+data/launcher-runtime.log

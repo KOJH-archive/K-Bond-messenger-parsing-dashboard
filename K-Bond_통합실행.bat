@@ -1,5 +1,8 @@
 @echo off
+chcp 65001 >nul
 setlocal EnableExtensions
+set "PYTHONUTF8=1"
+set "PYTHONIOENCODING=utf-8"
 cd /d "%~dp0"
 title K-Bond 수집기
 
@@ -31,7 +34,7 @@ if not defined PY_EXE (
 )
 
 echo Python: %PY_EXE% %PY_ARGS%
-%PY_EXE% %PY_ARGS% -c "import requests, uiautomation, flask" >nul 2>nul
+%PY_EXE% %PY_ARGS% -c "import requests, uiautomation, flask, flask_socketio" >nul 2>nul
 if errorlevel 1 (
     echo 필요한 구성요소를 처음 한 번 설치합니다...
     %PY_EXE% %PY_ARGS% -m pip install -r requirements.txt
@@ -42,11 +45,15 @@ if errorlevel 1 (
     )
 )
 
-echo 대시보드와 수집기를 시작합니다...
-start "K-Bond Dashboard" /min "%PY_EXE%" %PY_ARGS% dashboard.py
-timeout /t 2 /nobreak >nul
-start "" http://127.0.0.1:5000
-%PY_EXE% %PY_ARGS% kbond_scraper.py
+echo 이 폴더의 이전 실행을 정리하고 최신 대시보드를 시작합니다...
+%PY_EXE% %PY_ARGS% "%~dp0run_integrated.py"
+set "KBOND_EXIT_CODE=%ERRORLEVEL%"
 
-echo 수집기가 종료되었습니다.
+if not "%KBOND_EXIT_CODE%"=="0" (
+    echo [실행 실패] 종료 코드: %KBOND_EXIT_CODE%
+    echo 상세 기록: data\launcher-runtime.log 및 data\dashboard-runtime.log
+) else (
+    echo K-Bond 실행이 종료되었습니다.
+)
 pause
+exit /b %KBOND_EXIT_CODE%
